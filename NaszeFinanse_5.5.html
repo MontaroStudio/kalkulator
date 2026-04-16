@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0D1B2A">
+<title>Budżet domowy</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0D1B2A;--surface:#132236;--card:#1a2e47;--border:#243c5a;
+  --accent:#3B82F6;--green:#10B981;--danger:#EF4444;--warn:#F59E0B;
+  --text:#F1F5F9;--muted:#94A3B8;--input:#0f1e30;
+  --r:14px;--rs:8px;
+  --inv:#3B82F6;
+  --zyc:#10B981;
+  --opl:#F59E0B;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overscroll-behavior:none}
+
+/* ── Nawigacja ── */
+.nav{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.nb{padding:13px 4px 11px;text-align:center;font-size:11px;color:var(--muted);border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+.nb svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2}
+.nb.active{color:var(--accent)}
+
+/* ── Strony ── */
+.page{display:none;padding:16px 16px 40px}
+.page.active{display:block;animation:fi .18s ease}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+.hdr{margin-bottom:18px}
+.hdr h1{font-size:21px;font-weight:700}
+.hdr p{font-size:13px;color:var(--muted);margin-top:2px;min-height:18px}
+
+/* ── Banner URL ── */
+.banner{background:var(--warn);border-radius:var(--r);padding:14px 16px;margin-bottom:18px;display:none}
+.banner p{font-size:13px;color:#1C1917;line-height:1.5}
+.banner strong{font-weight:600}
+.banner input{width:100%;margin-top:8px;padding:10px 12px;border-radius:var(--rs);border:none;font-size:14px;background:#fff;color:#1C1917}
+.banner button{margin-top:8px;width:100%;padding:10px;border-radius:var(--rs);border:none;background:#0D1B2A;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+
+/* ── Karty i pola ── */
+.card{background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:14px;border:1px solid var(--border)}
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+input,select{width:100%;padding:13px 14px;border-radius:var(--rs);border:1px solid var(--border);background:var(--input);color:var(--text);font-size:16px;outline:none;-webkit-appearance:none}
+select{font-size:11px;padding:13px 36px 13px 10px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+
+/* ── Custom select ── */
+.custom-sel-btn{width:100%;padding:13px 36px 13px 14px;border-radius:var(--rs);border:1px solid var(--border);background:var(--input);color:var(--text);font-size:13px;text-align:left;cursor:pointer;position:relative;display:flex;justify-content:space-between;align-items:center;gap:8px;line-height:1.3}
+.custom-sel-btn:disabled{opacity:.45;cursor:default}
+.custom-sel-btn.open{border-color:var(--accent);border-top-left-radius:0;border-top-right-radius:0}
+.custom-sel-btn .sel-arrow{font-size:14px;color:var(--muted);flex-shrink:0;transition:transform .2s}
+.custom-sel-btn.open .sel-arrow{transform:rotate(180deg)}
+.custom-sel-btn .sel-label{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.custom-sel-wrap{position:relative}
+.custom-drop{display:none;position:absolute;bottom:100%;left:0;right:0;z-index:50;border:1px solid var(--accent);border-bottom:none;border-top-left-radius:var(--rs);border-top-right-radius:var(--rs);background:var(--input);max-height:220px;overflow-y:auto}
+.custom-drop.open{display:block}
+.custom-drop-item{width:100%;padding:11px 14px;border:none;background:none;color:var(--text);font-size:13px;text-align:left;cursor:pointer;border-bottom:1px solid var(--border);display:block;line-height:1.35}
+.custom-drop-item:last-child{border-bottom:none}
+.custom-drop-item:active{background:rgba(59,130,246,.15)}
+.custom-drop-item.selected{color:var(--accent);font-weight:600;background:rgba(59,130,246,.08)}
+input:focus,select:focus{border-color:var(--accent)}
+select:disabled{opacity:.45}
+
+/* ── Kwota ── */
+.kwota-wrap{position:relative}
+.kwota-wrap input{padding-left:34px;font-size:22px;font-weight:700;letter-spacing:-.3px}
+.zl{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--muted);pointer-events:none}
+
+/* ── Siatka przycisków ── */
+.btn-grid{display:flex;flex-direction:column;gap:8px}
+.mb,.gb{width:100%;padding:11px 13px;border-radius:var(--rs);border:1px solid var(--border);background:var(--input);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:left;transition:all .12s;display:flex;align-items:center;gap:8px}
+.mb:active,.gb:active{transform:scale(.98)}
+.mb .nr{font-size:10px;font-weight:700;background:rgba(255,255,255,.12);border-radius:4px;padding:2px 7px;min-width:24px;text-align:center;flex-shrink:0}
+.mb.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+.mb.sel .nr{background:rgba(255,255,255,.22)}
+.gb .gi{font-size:18px;flex-shrink:0;width:26px;text-align:center}
+.gb.sel-inv{background:rgba(59,130,246,.18);border-color:var(--inv);color:var(--inv)}
+.gb.sel-zyc{background:rgba(16,185,129,.18);border-color:var(--zyc);color:var(--zyc)}
+.gb.sel-opl{background:rgba(245,158,11,.18);border-color:var(--opl);color:var(--opl)}
+
+.grid-loading{font-size:13px;color:var(--muted);padding:4px 0}
+
+/* ── Status kategorii ── */
+.kat-st{font-size:12px;margin-top:5px;min-height:16px;color:var(--muted)}
+.kat-st.ok{color:var(--green)}
+.kat-st.err{color:var(--danger)}
+
+/* ── Przyciski ── */
+.btn{width:100%;padding:16px;border-radius:var(--r);border:none;font-size:17px;font-weight:700;cursor:pointer;transition:transform .1s,opacity .15s}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn-g{background:var(--green);color:#fff}
+.btn-b{background:var(--accent);color:#fff}
+.btn-d{background:var(--danger);color:#fff}
+.btn-n{background:var(--card);border:1px solid var(--border);color:var(--text)}
+
+/* ── Przycisk Odśwież kategorie ── */
+.btn-refresh-kat{
+  width:100%;padding:13px 16px;border-radius:var(--rs);
+  border:1px solid var(--border);background:var(--input);
+  color:var(--muted);font-size:14px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  gap:8px;transition:all .15s;margin-top:4px;
+}
+.btn-refresh-kat:active{transform:scale(.97);background:rgba(59,130,246,.1);border-color:var(--accent);color:var(--accent)}
+.btn-refresh-kat svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;flex-shrink:0}
+.btn-refresh-kat.spinning svg{animation:spin .7s linear infinite}
+.btn-refresh-kat.done{color:var(--green);border-color:var(--green)}
+
+/* ── Status komunikat ── */
+.st{text-align:center;padding:13px 16px;border-radius:var(--r);font-size:14px;font-weight:500;margin-top:12px;display:none}
+.st.show{display:block}
+.st.ok{background:#0F2E1F;color:#34D399;border:1px solid #065F46}
+.st.err{background:#2E0F0F;color:#F87171;border:1px solid #7F1D1D}
+.st.ld{background:var(--card);color:var(--muted);border:1px solid var(--border)}
+
+/* ── Historia ── */
+.hist-item{background:var(--card);border-radius:var(--rs);padding:13px 14px;margin-bottom:9px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.hi-l .cat{font-size:14px;font-weight:600}
+.hi-l .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.hi-r{text-align:right;flex-shrink:0}
+.hi-r .kwota{font-size:17px;font-weight:700;color:var(--green)}
+.badge-row{display:flex;gap:5px;justify-content:flex-end;margin-top:4px;flex-wrap:wrap}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:var(--border);color:var(--muted)}
+.badge-inv{background:rgba(59,130,246,.2);color:#93C5FD}
+.badge-zyc{background:rgba(16,185,129,.2);color:#6EE7B7}
+.badge-opl{background:rgba(245,158,11,.2);color:#FCD34D}
+
+/* ── Ustawienia ── */
+.si{background:var(--card);border-radius:var(--rs);padding:13px 16px;margin-bottom:9px;border:1px solid var(--border)}
+.si .sl{font-size:11px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.si .sv{font-size:13px;word-break:break-all}
+.si .sv.mono{font-family:monospace;font-size:11px;color:var(--muted)}
+
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty p{font-size:14px;margin-top:12px}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <button class="nb active" onclick="go('dodaj',this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Dodaj
+  </button>
+  <button class="nb" onclick="go('historia',this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>
+    Historia
+  </button>
+  <button class="nb" onclick="go('ustawienia',this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Ustawienia
+  </button>
+</nav>
+
+<!-- ═══ DODAJ ═══ -->
+<div id="page-dodaj" class="page active">
+  <div class="card">
+    <!-- Kwota -->
+    <div class="field">
+      <label>Kwota</label>
+      <div class="kwota-wrap">
+        <span class="zl">zł</span>
+        <input type="number" id="kwota" inputmode="decimal" placeholder="0.00" step="0.01" min="0">
+      </div>
+    </div>
+
+    <!-- Miesiąc -->
+    <div class="field">
+      <label>Miesiąc</label>
+      <div class="btn-grid" id="miesiac-grid">
+        <div class="grid-loading">Ładowanie...</div>
+      </div>
+    </div>
+
+    <!-- Główna kategoria -->
+    <div class="field">
+      <label>Główna kategoria</label>
+      <div class="btn-grid" id="glowna-grid">
+        <div class="grid-loading">Ładowanie...</div>
+      </div>
+    </div>
+
+    <!-- Kategoria -->
+    <div class="field">
+      <label>Kategoria</label>
+      <div class="custom-sel-wrap">
+      <button class="custom-sel-btn" id="kat-btn" onclick="toggleDrop('kat-drop')" disabled>— najpierw wybierz główną kategorię —<span class="sel-arrow">▾</span></button>
+      <div class="custom-drop" id="kat-drop"></div>
+      </div>
+      <div class="kat-st" id="kat-st" style="display:none"></div>
+    </div>
+
+    <!-- Podkategoria -->
+    <div class="field">
+      <label>Podkategoria</label>
+      <div class="custom-sel-wrap">
+      <button class="custom-sel-btn" id="pod-btn" onclick="toggleDrop('pod-drop')" disabled>— najpierw wybierz kategorię —<span class="sel-arrow">▾</span></button>
+      <div class="custom-drop" id="pod-drop"></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-g" id="btn-add" onclick="dodaj()">Zapisz do Google Sheets</button>
+  <div class="st" id="st"></div>
+</div>
+
+<!-- ═══ HISTORIA ═══ -->
+<div id="page-historia" class="page">
+  <div class="hdr">
+    <h1>Historia wydatków</h1>
+    <p>Ostatnie wpisy z arkusza</p>
+  </div>
+  <button class="btn btn-b" style="margin-bottom:14px;font-size:15px;padding:13px" onclick="ladujHistorie()">Odśwież</button>
+  <div id="lista"></div>
+</div>
+
+<!-- ═══ USTAWIENIA ═══ -->
+<div id="page-ustawienia" class="page">
+  <div class="hdr"><h1>Ustawienia</h1></div>
+
+  <div id="banner" class="banner">
+    <p><strong>Wklej URL Web App z Google Sheets</strong><br>Rozszerzenia → Apps Script → Wdróż → Aplikacja internetowa</p>
+    <input type="url" id="url-in" placeholder="https://script.google.com/macros/s/...">
+    <button onclick="zapiszURL()">Zapisz i połącz</button>
+  </div>
+
+  <div class="card">
+    <div class="field">
+      <label>URL Google Apps Script (Web App)</label>
+      <input type="url" id="url-set" placeholder="https://script.google.com/macros/s/...">
+    </div>
+    <button class="btn btn-b" style="font-size:15px;padding:13px" onclick="zapiszURLSet()">Zapisz URL</button>
+  </div>
+  <div class="si"><div class="sl">Aktualny URL</div><div class="sv mono" id="cur-url">—</div></div>
+  <div class="si"><div class="sl">Status połączenia</div><div class="sv" id="conn-st">—</div></div>
+  <div class="si"><div class="sl">Status aplikacji</div><div class="sv" id="url-info">Łączenie...</div></div>
+  <div class="si"><div class="sl">Kategorie (status)</div><div class="sv" id="kat-st">Pobieranie kategorii...</div></div>
+  <div class="si"><div class="sl">Miesiące (z Dashboard B10:B12)</div><div class="sv" id="mies-info">—</div></div>
+  <div class="si"><div class="sl">Kategorie (ze Słownika A2:O2)</div><div class="sv" id="kat-cnt">—</div></div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+    <button class="btn-refresh-kat" id="btn-refresh-kat" onclick="odswiez()" title="Odśwież listę kategorii ze Słownika">
+      <svg viewBox="0 0 24 24">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      Odśwież dane (miesiące i kategorie)
+    </button>
+    <button class="btn btn-n" style="font-size:14px;padding:13px" id="btn-test" onclick="testPolaczenia()">Testuj połączenie</button>
+    <button class="btn btn-d" style="font-size:14px;padding:13px" onclick="clearAll()">Wyczyść dane lokalne</button>
+  </div>
+</div>
+
+<script>
+// ── Stan aplikacji ────────────────────────────────────────────────────────────
+let slownik            = {};
+let katDoGlownej       = {};
+let glowneKategorie    = [];
+let kategorieSlownika  = [];   // ← lista z wiersza A2:O2 Słownika
+let miesiace           = [];
+let wybranyMiesiac     = '';
+let wybranaGlowna      = '';
+
+const GLOWNA_CFG = {
+  "Inwestycje": { ikona: "📈", cls: "sel-inv" },
+  "Życie":      { ikona: "🌿", cls: "sel-zyc" },
+  "Opłaty":     { ikona: "💳", cls: "sel-opl" },
+};
+
+const getURL  = () => localStorage.getItem('b_url') || '';
+const fmtPLN  = v  => parseFloat(v).toLocaleString('pl-PL', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' zł';
+const noCache = { cache: 'no-store' };
+const ts      = () => '&t=' + Date.now();
+
+// ── Nawigacja ─────────────────────────────────────────────────────────────────
+
+function go(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b  => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'historia') ladujHistorie();
+}
+
+// ── Miesiące ──────────────────────────────────────────────────────────────────
+
+async function ladujMiesiace() {
+  const url = getURL();
+  if (!url) return;
+  try {
+    const d = await fetch(url + '?action=miesiace' + ts(), noCache).then(r => r.json());
+    miesiace = (d.ok && d.miesiace.length) ? d.miesiace : ['I', 'II', 'III'];
+  } catch {
+    miesiace = ['I', 'II', 'III'];
+  }
+  renderMiesiace();
+  document.getElementById('mies-info').textContent = miesiace.join('  /  ');
+}
+
+function renderMiesiace() {
+  const grid = document.getElementById('miesiac-grid');
+  grid.innerHTML = '';
+  miesiace.forEach((m, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'mb';
+    btn.onclick   = () => selMiesiac(i, btn);
+    const nr  = document.createElement('span'); nr.className = 'nr'; nr.textContent = i + 1;
+    btn.append(nr, m);
+    grid.appendChild(btn);
+  });
+  const first = grid.querySelector('.mb');
+  if (first) selMiesiac(0, first);
+}
+
+function selMiesiac(idx, btn) {
+  wybranyMiesiac = miesiace[idx];
+  document.querySelectorAll('.mb').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+// ── Kategorie ze Słownika ─────────────────────────────────────────────────────
+
+async function ladujKategorie() {
+  const url  = getURL();
+  const stEl = document.getElementById('kat-st');
+  if (!url) { pokazBanner(); return; }
+
+  stEl.textContent = 'Pobieranie ze Słownika...';
+  stEl.className   = 'kat-st';
+
+  try {
+    const d = await fetch(url + '?action=kategorie' + ts(), noCache).then(r => r.json());
+    if (d.ok) {
+      slownik           = d.slownik;
+      katDoGlownej      = d.katDoGlownej     || {};
+      glowneKategorie   = d.glowneKategorie  || ["Inwestycje", "Życie", "Opłaty"];
+      // ← nowe pole z v3.6 skryptu; fallback do kluczy słownika
+      kategorieSlownika = d.kategorieSlownika || Object.keys(d.slownik);
+
+      renderGlowne();
+
+      const ile = kategorieSlownika.length;
+      stEl.textContent = `✓ ${ile} kategorii ze Słownika`;
+      stEl.className   = 'kat-st ok';
+
+      document.getElementById('url-info').textContent = 'Połączono · dane aktualne';
+      document.getElementById('kat-cnt').textContent  = `${ile} kategorii (A2:O2)`;
+      document.getElementById('conn-st').textContent  = '✅ OK';
+    } else {
+      stEl.textContent = '❌ ' + d.error;
+      stEl.className   = 'kat-st err';
+    }
+  } catch (err) {
+    stEl.textContent = '❌ Brak połączenia';
+    stEl.className   = 'kat-st err';
+    document.getElementById('url-info').textContent = 'Brak połączenia';
+    document.getElementById('conn-st').textContent  = '❌ ' + err.message;
+  }
+}
+
+// ══ ODŚWIEŻ: reset + restart aplikacji bez przeładowania strony ══════════════
+// Pobiera świeże miesiące i kategorie — symuluje wyłączenie i włączenie aplikacji.
+
+async function odswiez() {
+  const url = getURL();
+  const btn = document.getElementById('btn-refresh-kat');
+  if (!url) { pokazSt('err', 'Brak URL – skonfiguruj w Ustawieniach'); return; }
+
+  // ── 1. WYŁĄCZ – reset stanu i UI ─────────────────────────────────────────
+  btn.classList.add('spinning');
+  btn.classList.remove('done');
+  btn.disabled = true;
+
+  // Zresetuj stan aplikacji
+  slownik           = {};
+  katDoGlownej      = {};
+  glowneKategorie   = [];
+  kategorieSlownika = [];
+  wybranyMiesiac    = '';
+  wybranaGlowna     = '';
+  wybranaKat        = '';
+  wybranaPodk       = '';
+
+  // Zresetuj UI – pokaż "Ładowanie..." jak przy zimnym starcie
+  document.getElementById('miesiac-grid').innerHTML = '<div class="grid-loading">Ładowanie...</div>';
+  document.getElementById('glowna-grid').innerHTML  = '<div class="grid-loading">Ładowanie...</div>';
+  const katBtn = document.getElementById('kat-btn');
+  katBtn.childNodes[0].textContent = '— najpierw wybierz główną kategorię —';
+  katBtn.disabled = true;
+  document.getElementById('kat-drop').innerHTML = '';
+  const podBtn = document.getElementById('pod-btn');
+  podBtn.childNodes[0].textContent = '— najpierw wybierz kategorię —';
+  podBtn.disabled = true;
+  document.getElementById('pod-drop').innerHTML = '';
+  document.getElementById('kat-st').textContent     = 'Pobieranie kategorii...';
+  document.getElementById('kat-st').className       = 'kat-st';
+  document.getElementById('url-info').textContent   = 'Odświeżanie...';
+
+  // Krótka pauza – wizualne potwierdzenie "wyłączenia"
+  await new Promise(r => setTimeout(r, 350));
+
+  // ── 2. WŁĄCZ – pobierz świeże dane (miesiące + kategorie) ────────────────
+  try {
+    const [rM, rK] = await Promise.all([
+      fetch(url + '?action=miesiace'  + ts(), noCache).then(r => r.json()),
+      fetch(url + '?action=kategorie' + ts(), noCache).then(r => r.json()),
+    ]);
+
+    // — Miesiące —
+    miesiace = (rM.ok && rM.miesiace && rM.miesiace.length) ? rM.miesiace : ['I', 'II', 'III'];
+    renderMiesiace();
+    document.getElementById('mies-info').textContent = miesiace.join('  /  ');
+
+    // — Kategorie —
+    if (!rK.ok) throw new Error(rK.error);
+    slownik           = rK.slownik;
+    katDoGlownej      = rK.katDoGlownej     || {};
+    glowneKategorie   = rK.glowneKategorie  || ["Inwestycje", "Życie", "Opłaty"];
+    kategorieSlownika = rK.kategorieSlownika || Object.keys(rK.slownik);
+    renderGlowne();
+
+    const ile = kategorieSlownika.length;
+    document.getElementById('kat-st').textContent  = `✓ ${ile} kategorii ze Słownika`;
+    document.getElementById('kat-st').className    = 'kat-st ok';
+    document.getElementById('kat-cnt').textContent = `${ile} kategorii (A2:O2)`;
+    document.getElementById('url-info').textContent = 'Połączono · dane aktualne';
+    document.getElementById('conn-st').textContent  = '✅ OK';
+
+    // Stan: sukces
+    btn.classList.remove('spinning');
+    btn.classList.add('done');
+    setTimeout(() => btn.classList.remove('done'), 2500);
+
+  } catch (err) {
+    btn.classList.remove('spinning');
+    document.getElementById('kat-st').textContent  = '❌ Błąd odświeżania';
+    document.getElementById('kat-st').className    = 'kat-st err';
+    document.getElementById('url-info').textContent = 'Błąd połączenia';
+    pokazSt('err', '❌ Błąd: ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── Główne kategorie (przyciski) ──────────────────────────────────────────────
+
+function renderGlowne() {
+  const grid = document.getElementById('glowna-grid');
+  grid.innerHTML = '';
+  glowneKategorie.forEach(g => {
+    const cfg = GLOWNA_CFG[g] || { ikona: '•', cls: '' };
+    const btn = document.createElement('button');
+    btn.className = 'gb';
+    btn.onclick   = () => selGlowna(g, btn);
+    const gi  = document.createElement('span'); gi.className = 'gi'; gi.textContent = cfg.ikona;
+    btn.append(gi, g);
+    grid.appendChild(btn);
+  });
+}
+
+function selGlowna(glowna, btn) {
+  wybranaGlowna = glowna;
+  document.querySelectorAll('.gb').forEach(b => { b.className = 'gb'; });
+  const cfg = GLOWNA_CFG[glowna] || { cls: '' };
+  btn.className = 'gb ' + cfg.cls;
+  filtrujKategorie(glowna);
+  document.getElementById('kategoria').value = '';
+  const pod = document.getElementById('podkategoria');
+  pod.innerHTML = '';
+  const o = document.createElement('option'); o.value = ''; o.textContent = '— najpierw wybierz kategorię —';
+  pod.appendChild(o);
+  pod.disabled = true;
+}
+
+// ── Custom dropdown helpers ───────────────────────────────────────────────────
+let wybranaKat = '';
+let wybranaPodk = '';
+
+function toggleDrop(id) {
+  const drop = document.getElementById(id);
+  const isOpen = drop.classList.contains('open');
+  // zamknij wszystkie
+  document.querySelectorAll('.custom-drop').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.custom-sel-btn').forEach(b => b.classList.remove('open'));
+  if (!isOpen) {
+    drop.classList.add('open');
+    const btn = drop.previousElementSibling;
+    if (btn && btn.classList.contains('custom-sel-btn')) btn.classList.add('open');
+  }
+}
+
+function closeDrop(id) {
+  const drop = document.getElementById(id);
+  drop.classList.remove('open');
+  const btn = drop.previousElementSibling;
+  if (btn) btn.classList.remove('open');
+}
+
+function filtrujKategorie(glowna) {
+  wybranaKat = '';
+  wybranaPodk = '';
+  const btn  = document.getElementById('kat-btn');
+  const drop = document.getElementById('kat-drop');
+  btn.disabled = false;
+  btn.querySelector('.sel-label') ? btn.querySelector('.sel-label').textContent = '— wybierz kategorię —' : (btn.childNodes[0].textContent = '— wybierz kategorię —');
+
+  const lista = kategorieSlownika.length
+    ? kategorieSlownika.filter(k => !glowna || katDoGlownej[k] === glowna || katDoGlownej[k] == null)
+    : Object.keys(slownik).filter(k => !glowna || katDoGlownej[k] === glowna);
+
+  drop.innerHTML = '';
+  lista.forEach(k => {
+    const item = document.createElement('button');
+    item.className = 'custom-drop-item';
+    item.textContent = k;
+    item.onclick = () => { selKat(k); closeDrop('kat-drop'); };
+    drop.appendChild(item);
+  });
+
+  // reset podkategorii
+  const podBtn  = document.getElementById('pod-btn');
+  const podDrop = document.getElementById('pod-drop');
+  podBtn.disabled = true;
+  podBtn.childNodes[0].textContent = '— najpierw wybierz kategorię —';
+  podDrop.innerHTML = '';
+  wybranaPodk = '';
+}
+
+function selKat(kat) {
+  wybranaKat = kat;
+  const btn = document.getElementById('kat-btn');
+  btn.childNodes[0].textContent = kat;
+  document.querySelectorAll('#kat-drop .custom-drop-item').forEach(i => {
+    i.classList.toggle('selected', i.textContent === kat);
+  });
+  onKat(kat);
+}
+
+function onKat(kat) {
+  kat = kat || wybranaKat;
+  wybranaPodk = '';
+  const podBtn  = document.getElementById('pod-btn');
+  const podDrop = document.getElementById('pod-drop');
+  podDrop.innerHTML = '';
+
+  if (!kat || !slownik[kat]) {
+    podBtn.disabled = true;
+    podBtn.childNodes[0].textContent = '— najpierw wybierz kategorię —';
+    return;
+  }
+
+  podBtn.disabled = false;
+  podBtn.childNodes[0].textContent = '— wybierz podkategorię —';
+
+  slownik[kat].forEach(s => {
+    const item = document.createElement('button');
+    item.className = 'custom-drop-item';
+    item.textContent = s;
+    item.onclick = () => { selPodk(s); closeDrop('pod-drop'); };
+    podDrop.appendChild(item);
+  });
+}
+
+function selPodk(s) {
+  wybranaPodk = s;
+  const btn = document.getElementById('pod-btn');
+  btn.childNodes[0].textContent = s;
+  document.querySelectorAll('#pod-drop .custom-drop-item').forEach(i => {
+    i.classList.toggle('selected', i.textContent === s);
+  });
+}
+
+// ── URL ───────────────────────────────────────────────────────────────────────
+
+function pokazBanner() {
+  document.getElementById('banner').style.display  = 'block';
+  document.getElementById('url-info').textContent  = 'Wymagana konfiguracja';
+  document.getElementById('glowna-grid').innerHTML = '<div class="grid-loading">Brak połączenia</div>';
+}
+
+function zapiszURL() {
+  const url = document.getElementById('url-in').value.trim();
+  if (!url) return;
+  localStorage.setItem('b_url', url);
+  document.getElementById('banner').style.display   = 'none';
+  document.getElementById('url-set').value          = url;
+  document.getElementById('cur-url').textContent    = url;
+  init();
+}
+
+function zapiszURLSet() {
+  const url = document.getElementById('url-set').value.trim();
+  if (!url) { alert('Wklej URL'); return; }
+  localStorage.setItem('b_url', url);
+  document.getElementById('cur-url').textContent = url;
+  init();
+  alert('✅ URL zapisany!');
+}
+
+async function testPolaczenia() {
+  const url = getURL();
+  if (!url) { alert('Brak URL'); return; }
+  const btn = document.getElementById('btn-test');
+  btn.disabled = true; btn.textContent = 'Sprawdzam...';
+  document.getElementById('conn-st').textContent = 'Sprawdzam...';
+  try {
+    const [rK, rM] = await Promise.all([
+      fetch(url + '?action=kategorie' + ts(), noCache).then(r => r.json()),
+      fetch(url + '?action=miesiace'  + ts(), noCache).then(r => r.json()),
+    ]);
+    document.getElementById('conn-st').textContent   = rK.ok ? '✅ OK' : '❌ ' + rK.error;
+    document.getElementById('mies-info').textContent = rM.ok ? rM.miesiace.join('  /  ') : '—';
+    const ile = rK.ok ? (rK.kategorieSlownika || Object.keys(rK.slownik)).length : 0;
+    document.getElementById('kat-cnt').textContent   = rK.ok ? ile + ' kategorii (A2:O2)' : '—';
+  } catch (err) {
+    document.getElementById('conn-st').textContent = '❌ ' + err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Testuj połączenie';
+  }
+}
+
+// ── Zapis wydatku ─────────────────────────────────────────────────────────────
+
+async function dodaj() {
+  const kwota = parseFloat(document.getElementById('kwota').value);
+  const kat   = wybranaKat;
+  const pod   = wybranaPodk;
+  const url   = getURL();
+
+  if (!kwota || kwota <= 0)  { pokazSt('err', 'Podaj kwotę większą niż 0'); return; }
+  if (!wybranyMiesiac)       { pokazSt('err', 'Wybierz miesiąc'); return; }
+  if (!wybranaGlowna)        { pokazSt('err', 'Wybierz główną kategorię'); return; }
+  if (!kat)                  { pokazSt('err', 'Wybierz kategorię'); return; }
+  if (!url)                  { pokazSt('err', 'Brak URL – przejdź do Ustawień'); return; }
+
+  const btn = document.getElementById('btn-add');
+  btn.innerHTML = '<span class="spin"></span>Zapisywanie...';
+  btn.disabled  = true;
+  pokazSt('ld', 'Wysyłanie do Google Sheets...');
+
+  try {
+    const d = await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({
+        kwota,
+        miesiac:          wybranyMiesiac,
+        glownaKategoria:  wybranaGlowna,
+        kategoria:        kat,
+        podkategoria:     pod,
+      }),
+    }).then(r => r.json());
+
+    if (d.ok) {
+      pokazSt('ok', '✅ Zapisano! Wiersz ' + d.wiersz + ' w arkuszu Wydatki');
+      document.getElementById('kwota').value = '';
+      document.getElementById('kwota').focus();
+      wybranaKat = ''; wybranaPodk = '';
+      const kb = document.getElementById('kat-btn'); kb.childNodes[0].textContent = '— wybierz kategorię —';
+      document.getElementById('kat-drop').innerHTML = '';
+      const pb = document.getElementById('pod-btn'); pb.childNodes[0].textContent = '— najpierw wybierz kategorię —'; pb.disabled = true;
+      document.getElementById('pod-drop').innerHTML = '';
+    } else {
+      pokazSt('err', '❌ ' + d.error);
+    }
+  } catch (err) {
+    pokazSt('err', '❌ Błąd sieci: ' + err.message);
+  } finally {
+    btn.innerHTML = 'Zapisz do Google Sheets';
+    btn.disabled  = false;
+  }
+}
+
+function pokazSt(typ, msg) {
+  const el = document.getElementById('st');
+  el.className   = 'st show ' + typ;
+  el.textContent = msg;
+  if (typ === 'ok') setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── Historia ──────────────────────────────────────────────────────────────────
+
+function badgeGlowna(g) {
+  const cfg = GLOWNA_CFG[g];
+  return cfg ? cfg.cls.replace('sel-', 'badge-') : '';
+}
+
+function renderHistItem(w) {
+  const div = document.createElement('div');
+  div.className = 'hist-item';
+
+  const hiL = document.createElement('div'); hiL.className = 'hi-l';
+  const cat = document.createElement('div'); cat.className = 'cat'; cat.textContent = w.kategoria    || '—';
+  const sub = document.createElement('div'); sub.className = 'sub'; sub.textContent = w.podkategoria || '';
+  hiL.append(cat, sub);
+
+  const hiR = document.createElement('div'); hiR.className = 'hi-r';
+  const kwt = document.createElement('div'); kwt.className = 'kwota'; kwt.textContent = fmtPLN(w.kwota);
+
+  const bdgRow = document.createElement('div'); bdgRow.className = 'badge-row';
+
+  if (w.glownaKategoria) {
+    const b1 = document.createElement('span');
+    b1.className = 'badge ' + badgeGlowna(w.glownaKategoria);
+    b1.textContent = w.glownaKategoria;
+    bdgRow.appendChild(b1);
+  }
+  const b2 = document.createElement('span');
+  b2.className = 'badge'; b2.textContent = w.miesiac || '';
+  bdgRow.appendChild(b2);
+
+  hiR.append(kwt, bdgRow);
+  div.append(hiL, hiR);
+  return div;
+}
+
+async function ladujHistorie() {
+  const url = getURL();
+  const el  = document.getElementById('lista');
+  if (!url) {
+    el.innerHTML = '<div class="empty"><p>Brak URL – skonfiguruj w Ustawieniach</p></div>';
+    return;
+  }
+  el.innerHTML = '<div class="st show ld">Ładowanie z Google Sheets...</div>';
+  try {
+    const d = await fetch(url + '?action=historia&limit=40' + ts(), noCache).then(r => r.json());
+    if (!d.ok) { el.innerHTML = '<div class="st show err">❌ ' + d.error + '</div>'; return; }
+
+    const wpisy = (d.historia || []).filter(w => parseFloat(w.kwota) !== 0);
+    if (!wpisy.length) {
+      el.innerHTML = '<div class="empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg><p>Brak wydatków w arkuszu</p></div>';
+      return;
+    }
+    el.innerHTML = '';
+    wpisy.forEach(w => el.appendChild(renderHistItem(w)));
+  } catch (err) {
+    el.innerHTML = '<div class="st show err">❌ ' + err.message + '</div>';
+  }
+}
+
+function clearAll() {
+  if (!confirm('Usunąć dane lokalne (URL)?')) return;
+  localStorage.removeItem('b_url');
+  location.reload();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+
+async function init() {
+  await Promise.all([ladujMiesiace(), ladujKategorie()]);
+}
+
+const savedURL = getURL();
+if (savedURL) {
+  document.getElementById('url-set').value       = savedURL;
+  document.getElementById('cur-url').textContent = savedURL;
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.custom-sel-btn') && !e.target.closest('.custom-drop')) {
+    document.querySelectorAll('.custom-drop').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.custom-sel-btn').forEach(b => b.classList.remove('open'));
+  }
+});
+init();
+</script>
+</body>
+</html>
